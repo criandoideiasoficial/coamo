@@ -1,6 +1,6 @@
 <?php
 //primeiro vamos conectar ao banco de dados
-$conn = mysqli_connect("localohst", "coamo", "dbcoamo*", "db");
+$conn = mysqli_connect("localohst", "UsCoamo", "Sncoamo*", "DbCoamo");
 
 //vamos verificar se não a erro de conexão
 if (!$conn) {
@@ -12,13 +12,13 @@ if (!$conn) {
 
 //levar consideração que Cooperativa já fez login, por app ou site em uma tela
 //e retonou o id de login já conecta pois não foi informado qual tipo de login cooperativa teria que fazer.
-$IdCooperativa = '1'; //pode ser armazenada de várias formas mais vou tentar simplificar o sistema.
+$IdCooperativa = 1; //pode ser armazenada de várias formas mais vou tentar simplificar o sistema.
 
 //levando isso consideração vou criar exibição do produto conforme ele seleciona página
 
 //1 criando sql
 // home ele pega produtos Status 1 de ativo e At diferente de 0 ou maior que 0 estoque
-$sql = "SELECT * from Insumos where Insumos_Status = 1 and Insumo_Qt > 0"; 
+$sql = "SELECT * from Insumos where Insumos_Status = 1 and Insumo_Qt >= 0"; 
 $result = $conn->query($sql); // consulta do sql
 
 //primeiro vajo se resultado maior de 0 aí passo para exibir
@@ -144,21 +144,26 @@ $prodQt = 0; //total de produtos para usar no insert do pedido
           $ln    = mysqli_fetch_assoc($qr); 
           
          //aqui vou trazer valor com icms conforme os tributos      
-         $sqlIcms = 'SELECT * from ICSM_Coop JOIN ICMS_Tipo JOIN ICMS_Uf 
-         WHERE ICSM_Coop.id = '.$tipoDeCoop.' AND ICMS_Tipo.id = '.$ln['Insumo_Tipos_UMD.Tipo'].'  AND ICMS_Uf.ICMS_valor_uf = '.$ufCoop;
+         $sqlIcms = 'SELECT * from ICMS_Coop JOIN ICMS_Tipo JOIN ICMS_Uf 
+         WHERE ICMS_Coop.id = '.$tipoDeCoop.' AND ICMS_Tipo.id = '.$ln['Insumo_Tipos_UMD.Tipo'].'  AND ICMS_Uf.ICMS_valor_uf = '.$ufCoop;
          $qrICMS    = mysqli_query($conn, $sqlIcms) or die( 'Estamos com Problema no Momento tente mais tarde'); 
          $lnIcms    = mysqli_fetch_assoc($qrICMS); 
-         $TotalICSMS = $lnIcms['ICSM_Coop.ICMS_Coop_Valor'] + $lnIcms['ICMS_Tipo.ICMS_Tipo_Valor'] + $lnIcms['ICMS_Uf.ICMS_valor_uf']; //somando os icms supondo q seja 4 + 4 + 4 total 12% 
-
+         
           $nome  = $ln['Insumo_Nome']; //exibir nome do produto no pedido
           $preco = $ln['Insumo_Valor']; // exibir valor produto individual
-          $valorComIcms = $preco * (1+($TotalICSMS/100));
+          
           //agora vejo desconto por grupo
           if(!isset($_SESSION['grupo'][$ln['Categoria_Insumo.idCategoria_Insumo']])){
             //se esse grupo já existe não faça nada
          }else{
+             if($GrupoPod >= 5){}else{
             $GrupoPod ++; //adiciona 1% desconto por grupo
+             }
          }
+         //soma do icms
+         $TotalICSMS = $lnIcms['ICMS_Coop.ICMS_Coop_Valor'] + $lnIcms['ICMS_Tipo.ICMS_Tipo_Valor'] + $lnIcms['ICMS_Uf.ICMS_valor_uf']; //somando os icms supondo q seja 4 + 4 + 4 total 12% 
+         $valorComIcms = $preco * (1+($TotalICSMS/100));
+
           $sub =  $valorComIcms * (1-($GrupoPod/100)); //removendo valor 4% exemplo desconto por grupo
           
           $novosub   = $sub * $qtd; //total por quantidade
